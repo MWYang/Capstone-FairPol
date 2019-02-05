@@ -121,11 +121,11 @@ class PredPol:
         return self
 
     def get_demographics(self, shape_json, shape_json_key,
-            demographic_data,
-            region_column,
-            black_column,
-            white_column,
-            region_preprocess=lambda x: x):
+                         demographic_data,
+                         region_column,
+                         black_column,
+                         white_column,
+                         region_preprocess=lambda x: x):
         """Given a JSON shape file, a key corresponding to the region identifier
         in the JSON, a DataFrame of `demographic_data`, and a list of keys
         corresponding to racial demographics, associate each grid cell with the
@@ -173,11 +173,15 @@ class PredPol:
                 except:
                     pass
 
-            row['region'], row['black'], row['white'] = region, black, white
-            return row
+            return region, black, white
 
         tqdm.pandas()
-        self.grid_cells = self.grid_cells.progress_apply(_associate, axis=1)
+        (
+            self.grid_cells['region'],
+            self.grid_cells['black'],
+            self.grid_cells['white']
+        ) = zip(*self.grid_cells.progress_apply(_associate, axis=1))
+        return self
 
     def predict(self, data):
         # Given the observations in data return a sorted list of the most likely
