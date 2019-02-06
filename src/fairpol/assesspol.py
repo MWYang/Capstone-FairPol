@@ -53,14 +53,14 @@ class AssessPol():
     def compute_accuracy(self, methods='all'):
         """
         - methods (string):
-            One of ['all', 'predpol', 'god', 'running_count'];
+            One of ['all', 'predpol', 'god', 'naive_count'];
             Default: 'all'
         """
         accuracy = {
             method: sp.zeros((len(self.results), len(self.lambda_columns)))
-            for method in ['predpol', 'god', 'running_count']
+            for method in ['predpol', 'god', 'naive_count']
         }
-        running_count = count_seen(self.pred_obj, self.pred_obj.train)['num_observed']
+        naive_count = count_seen(self.pred_obj, self.pred_obj.train)['num_observed']
 
         for i, (lambda_col, actual_col) in self._iterator():
             actual_vals = self.results[actual_col].values
@@ -69,10 +69,10 @@ class AssessPol():
             sorted_idx = sp.argsort(self.results[lambda_col])[::-1]
             accuracy['predpol'][:, i] = actual_vals[sorted_idx]
 
-            sorted_idx = sp.argsort(running_count)[::-1]
-            accuracy['running_count'][:, i] = actual_vals[sorted_idx]
+            sorted_idx = sp.argsort(naive_count)[::-1]
+            accuracy['naive_count'][:, i] = actual_vals[sorted_idx]
 
-            running_count += self.results[actual_col]
+            naive_count += self.results[actual_col]
 
         # Compute CI and p-values here
         for k, v in accuracy.items():
@@ -83,14 +83,14 @@ class AssessPol():
     def compute_fairness(self, methods='all'):
         """
         - methods (string):
-            One of ['all', 'predpol', 'god', 'running_count'];
+            One of ['all', 'predpol', 'god', 'naive_count'];
             Default: 'all'
         """
         fairness = {
             method: sp.zeros((len(self.results), len(self.lambda_columns)))
-            for method in ['predpol', 'god', 'running_count']
+            for method in ['predpol', 'god', 'naive_count', 'random']
         }
-        running_count = count_seen(self.pred_obj, self.pred_obj.train)['num_observed']
+        naive_count = count_seen(self.pred_obj, self.pred_obj.train)['num_observed']
         black = self.pred_obj.grid_cells.black.fillna(0)
         white = self.pred_obj.grid_cells.white.fillna(0)
 
@@ -109,10 +109,12 @@ class AssessPol():
             sorted_idx = sp.argsort(self.results[lambda_col])[::-1]
             fairness['predpol'][:, i] += fair_diff[sorted_idx]
 
-            sorted_idx = sp.argsort(running_count)[::-1]
-            fairness['running_count'][:, i] += fair_diff[sorted_idx]
+            sorted_idx = sp.argsort(naive_count)[::-1]
+            fairness['naive_count'][:, i] += fair_diff[sorted_idx]
 
-            running_count += self.results[actual_col]
+            naive_count += self.results[actual_col]
+
+            fairness['random'][:, i] += fair_diff[sorted_idx.sample(frac=1)]
 
         for k, v in fairness.items():
             fairness[k] = sp.sum(v, axis=1)
