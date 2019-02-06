@@ -7,10 +7,11 @@ chicago = pd.read_csv('../data/ChicagoHomicides2012to2017.csv',
 train = chicago.loc[chicago.Year <= 2014]
 test = chicago.loc[chicago.Year == 2015]
 
-with open('../data/Illinois2015CensusTracts.json', 'r') as f:
-    ill_shape = json.load(f)
 ill_demo = pd.read_csv('../data/Illinois2015CensusTractsDemographics.csv',
                     dtype={'tract': str, 'county': str}, index_col=0)
+
+with open('../data/Illinois2015CensusTracts.json', 'r') as f:
+    ill_shape = json.load(f)
 
 # reload(fp)
 pp = fp.PredPol(chicago, grid_size=0.01)

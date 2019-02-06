@@ -4,7 +4,7 @@ import scipy as sp
 from scipy.interpolate import RegularGridInterpolator
 import scipy.stats as stats
 from shapely.geometry import shape, Point
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 
 class PredPol:
@@ -165,12 +165,12 @@ class PredPol:
                     ]
                     black = float(row[black_column])
                     white = float(row[white_column])
-                    raise(RuntimeWarning(black, white))
 
                     total = black + white
-                    black /= total
-                    white /= total
+                    black = black / total
+                    white = white / total
                 except:
+                    raise(RuntimeWarning(region, black, white))
                     pass
 
             return region, black, white
