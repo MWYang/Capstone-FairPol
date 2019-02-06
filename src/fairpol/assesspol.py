@@ -1,4 +1,6 @@
 from tqdm.auto import tqdm
+import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 import pandas as pd
 import scipy as sp
 
@@ -133,3 +135,31 @@ def count_seen(pred_obj, test_data):
     result['num_observed'] = counts
     return result
 
+
+def plot_accuracy(accuracy):
+    fig, ax = plt.subplots()
+    fraction_flagged = sp.arange(0.0, 1.0, 1.0 / len(accuracy))
+    ax.plot(fraction_flagged, accuracy['predpol'], label='PredPol')
+    ax.plot(fraction_flagged, fraction_flagged, label='Random')
+    ax.plot(fraction_flagged, accuracy['god'], label='PerfectPrediction')
+    ax.plot(fraction_flagged, accuracy['naive_count'], label='NaiveCounting')
+    ax.legend()
+    ax.xaxis.set_major_formatter(ticker.PercentFormatter(xmax=1))
+    ax.yaxis.set_major_formatter(ticker.PercentFormatter(xmax=1))
+    ax.set(xlabel='Grid cells visited', ylabel='Crime caught')
+    return fig, ax
+
+
+def plot_fairness(fairness):
+    fig, ax = plt.subplots()
+    fraction_flagged = sp.arange(0.0, 1.0, 1.0 / len(fairness))
+    plt.plot(fraction_flagged, fairness['predpol'], label='PredPol')
+    ax.plot(fraction_flagged, fairness['random'], label='Random')
+    ax.plot(fraction_flagged, fairness['god'], label='PerfectPrediction')
+    ax.plot(fraction_flagged, fairness['naive_count'], label='NaiveCounting')
+    ax.legend()
+    ax.xaxis.set_major_formatter(ticker.PercentFormatter(xmax=1))
+    ax.yaxis.set_major_formatter(ticker.PercentFormatter(xmax=1))
+    ax.set(xlabel='Grid cells visited',
+           ylabel='% black crime caught - % white crime caught')
+    return fig, ax

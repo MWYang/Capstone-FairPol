@@ -184,9 +184,9 @@ class PredPol:
         return self
 
     def predict(self, data):
-        # Given the observations in data return a sorted list of the most likely
-        # crime locations (in the size of the grid dictated by `grid_size` for
-        # the next day)
+        '''Given the observations in data, return the estimated conditional
+        intensities at each grid cell for the next day
+        '''
 
         N = len(data)
         sigma = self.sigma
