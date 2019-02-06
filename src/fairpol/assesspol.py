@@ -1,4 +1,5 @@
 from tqdm.auto import tqdm
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import pandas as pd
@@ -153,13 +154,17 @@ def plot_accuracy(accuracy):
 def plot_fairness(fairness):
     fig, ax = plt.subplots()
     fraction_flagged = sp.arange(0.0, 1.0, 1.0 / len(fairness))
-    plt.plot(fraction_flagged, fairness['predpol'], label='PredPol')
+    ax.plot(fraction_flagged, fairness['predpol'], label='PredPol')
     ax.plot(fraction_flagged, fairness['random'], label='Random')
     ax.plot(fraction_flagged, fairness['god'], label='PerfectPrediction')
     ax.plot(fraction_flagged, fairness['naive_count'], label='NaiveCounting')
     ax.legend()
     ax.xaxis.set_major_formatter(ticker.PercentFormatter(xmax=1))
     ax.yaxis.set_major_formatter(ticker.PercentFormatter(xmax=1))
-    ax.set(xlabel='Grid cells visited',
-           ylabel='% black crime caught - % white crime caught')
+    if mpl.rcParams['text.usetex']:
+        ax.set(xlabel='Grid cells visited',
+               ylabel='\% black crime caught - \% white crime caught')
+    else:
+        ax.set(xlabel='Grid cells visited',
+               ylabel='% black crime caught - % white crime caught')
     return fig, ax
