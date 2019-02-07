@@ -43,6 +43,6 @@ also take \~2 hours (at least on my machine).
 ```
 
 # Tasks
-- [ ] Finish migrating earlier, horrible spaghetti code for assessing fairness, implementing the fairness modification
+- [x] Finish migrating earlier, horrible spaghetti code for assessing fairness, implementing the fairness modification
 - [ ] Add final thesis document
 - [ ] Add smaller working example with a pre-cleaned dataset
