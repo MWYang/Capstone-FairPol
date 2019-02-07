@@ -1,21 +1,7 @@
 # from fairpol.assesspol import AssessPol
 from fairpol.helpers import solve_multi_knapsack
+from tqdm.auto import tqdm
 import scipy as sp
-
-
-# class FairPol(AssessPol):
-#     def __init__(self, assess_obj=None, pred_obj=None):
-#         if assess_obj is None and pred_obj is None:
-#             raise(RuntimeError("Please initialize FairPol with either a PredPol or AssessPol object."))
-#         if assess_obj:
-#             self.results = assess_obj.results.copy()
-#             self.lambda_columns = assess_obj.lambda_columns.copy()
-#             self.actual_columns = assess_obj.actual_columns.copy()
-#         else:
-#             super().__init__(pred_obj)
-#             print("Don't forget to run generate_predictions().")
-#         self.knapsack_results = None
-#         self.sorting_results = None
 
 
 def compute_fp_knapsack(assess_obj, num_cells,
@@ -84,10 +70,44 @@ def compute_fp_knapsack(assess_obj, num_cells,
 
     # Compute accuracy as a percentage of total crime
     knapsack_accuracy /= assess_obj.get_actual_counts().values.sum()
+    # Compute fairness as an average over all days
     knapsack_fairness /= (i + 1)
 
     return knapsack_items, knapsack_accuracy, knapsack_fairness
 
 
 def compute_fp_sorting(assess_obj, alphas):
-    pass
+    accuracy = sp.zeros((len(assess_obj.results), len(alphas)))
+    fairness = accuracy.copy()
+    black = assess_obj.pred_obj.grid_cells.black.fillna(0)
+    white = assess_obj.pred_obj.grid_cells.white.fillna(0)
+    # Save the original `results` dataframe in the assess_obj
+    # Make a copy that this function will mutate
+    orig_results = assess_obj.results
+    assess_obj.results = assess_obj.results.copy()
+    lambdas = assess_obj.get_predicted_intensities().apply(sp.log)
+    tqdm_leave = assess_obj.tqdm_leave
+    assess_obj.tqdm_leave = False
+    for i, alpha in enumerate(tqdm(alphas)):
+        # Calculate new lambda_cols based on alpha
+        pct_black_predicted = lambdas.multiply(black, axis='index')
+        pct_black_predicted = pct_black_predicted.divide(
+            pct_black_predicted.sum(axis=0), axis=1)
+        pct_white_predicted = lambdas.multiply(white, axis='index')
+        pct_white_predicted = pct_white_predicted.divide(
+            pct_white_predicted.sum(axis=0), axis=1)
+        fair_diff = 1.0 - sp.absolute(pct_black_predicted - pct_white_predicted)
+        avg_crime_captured = (pct_black_predicted + pct_white_predicted) / 2.0
+        alpha_lambdas = (
+            ((1.0 - alpha) * avg_crime_captured) + (alpha * fair_diff)
+        )
+        # Put new lambda values in `results` dataframe
+        assess_obj.results[assess_obj.lambda_columns] = alpha_lambdas
+        # Compute accuracy and fairness results
+        accuracy[:, i] = assess_obj.compute_accuracy()['predpol']
+        fairness[:, i] = assess_obj.compute_fairness()['predpol']
+        pass
+    # Restore the original `results` object
+    assess_obj.results = orig_results
+    assess_obj.tqdm_leave = tqdm_leave
+    return accuracy, fairness

@@ -12,6 +12,7 @@ class AssessPol():
         self.results = pred_obj.grid_cells.copy()
         self.lambda_columns = []
         self.actual_columns = []
+        self.tqdm_leave = False
 
     def generate_predictions(self, data, date_range):
         '''Each prediction generates:
@@ -51,7 +52,7 @@ class AssessPol():
     def _iterator(self):
         # Wrap zip object in tqdm to get a progress bar
         return tqdm(enumerate(zip(self.lambda_columns, self.actual_columns)),
-            total=len(self.lambda_columns))
+            total=len(self.lambda_columns), leave=self.tqdm_leave)
 
     def compute_accuracy(self, methods='all'):
         """
