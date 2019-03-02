@@ -54,12 +54,7 @@ class AssessPol():
         return tqdm(enumerate(zip(self.lambda_columns, self.actual_columns)),
             total=len(self.lambda_columns), leave=self.tqdm_leave)
 
-    def compute_accuracy(self, methods='all'):
-        """
-        - methods (string):
-            One of ['all', 'predpol', 'god', 'naive_count'];
-            Default: 'all'
-        """
+    def compute_accuracy(self):
         accuracy = {
             method: sp.zeros((len(self.results), len(self.lambda_columns)))
             for method in ['predpol', 'god', 'naive_count']
@@ -84,12 +79,7 @@ class AssessPol():
             accuracy[k] = sp.cumsum(accuracy[k] / sp.sum(accuracy[k]))
         return pd.DataFrame(accuracy)
 
-    def compute_fairness(self, methods='all'):
-        """
-        - methods (string):
-            One of ['all', 'predpol', 'god', 'naive_count'];
-            Default: 'all'
-        """
+    def compute_fairness(self):
         fairness = {
             method: sp.zeros((len(self.results), len(self.lambda_columns)))
             for method in ['predpol', 'god', 'naive_count', 'random']
@@ -125,6 +115,28 @@ class AssessPol():
             fairness[k] = sp.cumsum(fairness[k]) / len(self.lambda_columns)
         return pd.DataFrame(fairness)
 
+    def assess_calibration(self):
+        '''Assess if PredPol is calibrated by conditioning on predicted intensity
+        and checking the correlation between number of crimes and demographics.
+        '''
+        black = self.pred_obj.grid_cells.black
+        not_nan = sp.logical_not(sp.isnan(black.values))
+
+        bins = sp.histogram_bin_edges(self.get_predicted_intensities(), bins='auto')
+        correlations = sp.empty((len(self.lambda_columns), len(bins)))
+        correlations[:] = sp.nan
+        for i, (lambda_col, actual_col) in self._iterator():
+            idx_bins = sp.digitize(self.results[lambda_col], bins)
+            for j in range(len(bins)):
+                idx_selected = sp.logical_and(idx_bins == j, not_nan)
+                if sp.sum(idx_selected) > 2:
+                    actual = self.results.loc[idx_selected, actual_col]
+                    demographics = black.loc[idx_selected]
+                    correlations[i, j] = sp.stats.pearsonr(actual, demographics)[0]
+
+        correlations /= (i + 1)  # take the average over the results
+        return correlations
+
 
 def count_seen(pred_obj, test_data):
     """Given the crime data in `test_data`, compute how much crime was actually
@@ -138,13 +150,14 @@ def count_seen(pred_obj, test_data):
     return result
 
 
-def plot_accuracy(accuracy):
+def plot_accuracy(accuracy, plot_perfect=False):
     fig, ax = plt.subplots()
     fraction_flagged = sp.arange(0.0, 1.0, 1.0 / len(accuracy))
-    ax.plot(fraction_flagged, accuracy['predpol'], label='PredPol')
-    ax.plot(fraction_flagged, fraction_flagged, label='Random')
-    ax.plot(fraction_flagged, accuracy['god'], label='PerfectPrediction')
-    ax.plot(fraction_flagged, accuracy['naive_count'], label='NaiveCounting')
+    ax.plot(fraction_flagged, accuracy['predpol'], label='PredPol', color='blue')
+    ax.plot(fraction_flagged, fraction_flagged, label='Random', color='orange')
+    if plot_perfect:
+        ax.plot(fraction_flagged, accuracy['god'], label='PerfectPrediction', color='green')
+    ax.plot(fraction_flagged, accuracy['naive_count'], label='NaiveCounting', color='red')
     ax.legend()
     ax.xaxis.set_major_formatter(ticker.PercentFormatter(xmax=1))
     ax.yaxis.set_major_formatter(ticker.PercentFormatter(xmax=1))
@@ -152,13 +165,14 @@ def plot_accuracy(accuracy):
     return fig, ax
 
 
-def plot_fairness(fairness):
+def plot_fairness(fairness, plot_perfect=False):
     fig, ax = plt.subplots()
     fraction_flagged = sp.arange(0.0, 1.0, 1.0 / len(fairness))
-    ax.plot(fraction_flagged, fairness['predpol'], label='PredPol')
-    ax.plot(fraction_flagged, fairness['random'], label='Random')
-    ax.plot(fraction_flagged, fairness['god'], label='PerfectPrediction')
-    ax.plot(fraction_flagged, fairness['naive_count'], label='NaiveCounting')
+    ax.plot(fraction_flagged, fairness['predpol'], label='PredPol', color='blue')
+    ax.plot(fraction_flagged, fairness['random'], label='Random', color='orange')
+    if plot_perfect:
+        ax.plot(fraction_flagged, fairness['god'], label='PerfectPrediction', color='green')
+    ax.plot(fraction_flagged, fairness['naive_count'], label='NaiveCounting', color='red')
     ax.legend()
     ax.xaxis.set_major_formatter(ticker.PercentFormatter(xmax=1))
     ax.yaxis.set_major_formatter(ticker.PercentFormatter(xmax=1))
