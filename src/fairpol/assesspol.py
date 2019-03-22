@@ -7,7 +7,27 @@ import scipy as sp
 
 
 class AssessPol():
+    """A class for assessing the performance of a PredPol object. Maintains
+    previously computed results as part of its state.
+
+    Attributes:
+        pred_obj: a PredPol object
+        results: a pandas DataFrame, extends `pred_obj.grid_cells` with more
+            columns that indicate the predicted intensities and actual crime
+            counts in each grid cell for each of the days in the test set
+        lambda_columns: list of strings indicating the columns in `results` with
+            predicted intensities
+        actual_columns: list of strings indicating the columns in `results` with
+            actual counts
+        self.tqdm_leave: boolean, whether or not to persist `tqdm` progress bars,
+            default: False
+    """
     def __init__(self, pred_obj):
+        """Constructor for AssessPol. Nothing complicated happening here.
+
+        Args:
+            pred_obj: a PredPol object to assess
+        """
         self.pred_obj = pred_obj
         self.results = pred_obj.grid_cells.copy()
         self.lambda_columns = []
@@ -15,13 +35,27 @@ class AssessPol():
         self.tqdm_leave = False
 
     def generate_predictions(self, data, date_range):
-        '''Each prediction generates:
+        """Compute and store predicted intensities for each day in `date_range`.
+        Each prediction generates:
         - a predicted conditional intensity for each grid cell
         - a count of the actual number of crimes for each grid cell
-        Append each of these results into a new column in self.results
-        Save a list of the column identifiers for predicted intensities
-        and actual counts
-        '''
+        Each of these results is appended into a new column in self.results,
+        and a list of these column identifiers is saved in `self.lambda_columns`
+        and `self.actual_columns`.
+
+        Args:
+            data: a pandas DataFrame where each row is an observed crime, used
+            to learn the model parameters. Typically will contain the rows in
+            `self.pred_obj.train` and additional ones.Must contain at least the
+            following columns:
+                t: numeric, indicating the time of the crime. All values must be
+                less than the `T` supplied as an argument to this constructor.
+                x: numeric, indicating the horizontal position of the crime.
+                y: numeric, indicating the vertical position of the crime.
+            For numerical safety (avoiding overflows), it's recommended that t,
+            x, and y are all normalized to have relatively small values.
+            date_range: an array of numpy datetimes indicating the test days
+        """
         results = self.results
         pp = self.pred_obj
 
@@ -44,17 +78,34 @@ class AssessPol():
         return self
 
     def get_predicted_intensities(self):
+        """Convenience function for returning the predicted intensities
+        """
         return self.results[self.lambda_columns]
 
     def get_actual_counts(self):
+        """Convenience function for returning the actual crime counts
+        """
         return self.results[self.actual_columns]
 
     def _iterator(self):
-        # Wrap zip object in tqdm to get a progress bar
+        """Helper function for returning an iterator through each day's predicted
+        intensities and actual crime counts, with a progress bar
+
+        Returns: a tqdm iterator object where each item is:
+            (index, name of predictions column, name of actual results column)
+        """
         return tqdm(enumerate(zip(self.lambda_columns, self.actual_columns)),
             total=len(self.lambda_columns), leave=self.tqdm_leave)
 
     def compute_accuracy(self):
+        """Computes accuracy across the range in `self.date_range`.
+
+        Returns: a pandas DataFrame with three columns corresponding to each
+            kind of prediction method (PredPol, perfect prediction (god), and
+            the baseline (naive_count)). The entries of each column are an array
+            where the ith entry is the average accuracy over `self.date_range`
+            when visiting i number of grid cells
+        """
         accuracy = {
             method: sp.zeros((len(self.results), len(self.lambda_columns)))
             for method in ['predpol', 'god', 'naive_count']
@@ -80,6 +131,14 @@ class AssessPol():
         return pd.DataFrame(accuracy)
 
     def compute_fairness(self):
+        """Computes fairness across the range in `self.date_range`.
+
+        Returns: a pandas DataFrame with three columns corresponding to each
+            kind of prediction method (PredPol, perfect prediction (god), and
+            the baseline (naive_count)). The entries of each column are an array
+            where the ith entry is the average fairness over `self.date_range`
+            when visiting i number of grid cells
+        """
         fairness = {
             method: sp.zeros((len(self.results), len(self.lambda_columns)))
             for method in ['predpol', 'god', 'naive_count', 'random']
@@ -116,9 +175,9 @@ class AssessPol():
         return pd.DataFrame(fairness)
 
     def assess_calibration(self):
-        '''Assess if PredPol is calibrated by conditioning on predicted intensity
+        """Assess if PredPol is calibrated by conditioning on predicted intensity
         and checking the correlation between number of crimes and demographics.
-        '''
+        """
         black = self.pred_obj.grid_cells.black
         not_nan = sp.logical_not(sp.isnan(black.values))
 
