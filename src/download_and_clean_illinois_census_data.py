@@ -1,5 +1,6 @@
 import pandas as pd
 import censusdata
+from fairpol.helpers import download_file
 
 
 def main(verbose=False, data_dir='../data/'):
@@ -20,9 +21,8 @@ def main(verbose=False, data_dir='../data/'):
         print(variables)
 
     illinois_demo = censusdata.download(
-        'acs5', 2015,
-        censusdata.censusgeo([('state', '17'), ('tract', '*')]), variables
-    )
+        'acs5', 2015, censusdata.censusgeo([('state', '17'), ('tract', '*')]),
+        variables)
 
     illinois_demo.rename({
         'B02001_001E': 'total',
@@ -35,14 +35,17 @@ def main(verbose=False, data_dir='../data/'):
         'B02001_008E': 'two_or_more',
         'B02001_009E': 'two_or_more_including_other',
         'B02001_010E': 'two_or_more_excluding_other'
-    }, axis='columns', inplace=True)
+    },
+                         axis='columns',
+                         inplace=True)
 
     illinois_demo.other = illinois_demo.other + \
         illinois_demo['two_or_more_including_other'] + \
         illinois_demo['two_or_more_excluding_other']
 
-    illinois_demo = illinois_demo[
-        ['total', 'white', 'black', 'native', 'asian', 'pacific', 'other']]
+    illinois_demo = illinois_demo[[
+        'total', 'white', 'black', 'native', 'asian', 'pacific', 'other'
+    ]]
     total = illinois_demo.total
     illinois_demo.white /= total
     illinois_demo.black /= total
@@ -54,10 +57,10 @@ def main(verbose=False, data_dir='../data/'):
     illinois_demo['censusgeo'] = illinois_demo.index
     illinois_demo.reset_index(level=0, drop=True, inplace=True)
 
-    illinois_demo['tract'] = illinois_demo['censusgeo'].apply(
-        lambda x: x.geo[2][1]).astype(str)
-    illinois_demo['county'] = illinois_demo['censusgeo'].apply(
-        lambda x: x.geo[1][1])
+    illinois_demo['tract'] = illinois_demo['censusgeo'].apply(lambda x: x.geo[
+        2][1]).astype(str)
+    illinois_demo['county'] = illinois_demo['censusgeo'].apply(lambda x: x.geo[
+        1][1])
     illinois_demo['county_name'] = illinois_demo['censusgeo'].apply(
         lambda x: x.name.split(',')[1][1:-7])
     illinois_demo.drop('censusgeo', axis='columns', inplace=True)
@@ -70,8 +73,11 @@ def main(verbose=False, data_dir='../data/'):
     illinois_demo.to_csv(data_dir + 'Illinois2015CensusTractsDemographics.csv')
     print("Successfully downloaded Illinois demographic data.")
 
-    # TODO: Add GeoJSON information to each census tract, and remove
-    # the corresponding code from `predpol.py`.
+    url = "https://github.com/uscensusbureau/citysdk/raw/master/v2/GeoJSON/500k/2015/17/tract.json"
+    fname = 'Illinois2015CensusTracts.json'
+    target = data_dir + fname
+    download_file(url, target)
+    print("Successfully downloaded Illinois census tract shapefile.")
 
 
 if __name__ == '__main__':

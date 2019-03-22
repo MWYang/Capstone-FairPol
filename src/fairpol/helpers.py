@@ -1,5 +1,32 @@
 from ortools.algorithms import pywrapknapsack_solver
 import math
+import os.path
+import requests
+from tqdm import tqdm
+
+
+def download_file(url, target):
+    # Download file from original link
+    if not os.path.isfile(target):
+        # Download with progress bar code modified from:
+        # https://stackoverflow.com/questions/37573483/progress-bar-while-download-file-over-http-with-requests/37573701
+        r = requests.get(url, stream=True)
+        total_size = int(r.headers.get('content-length', 0))
+        block_size = 1024
+        wrote = 0
+
+        with open(target, 'wb') as f:
+            tqdm_obj = tqdm(
+                r.iter_content(block_size),
+                total=math.ceil(total_size / block_size),
+                unit='KB',
+                unit_scale=True)
+            for data in tqdm_obj:
+                wrote = wrote + len(data)
+                f.write(data)
+        print("Download complete.")
+    else:
+        print("File already downloaded.")
 
 
 def round_down(x, a):
@@ -31,7 +58,8 @@ def solve_multi_knapsack(profits, weights, capacities, verbose=True):
     solver = pywrapknapsack_solver.KnapsackSolver(
         pywrapknapsack_solver.KnapsackSolver.
         # KNAPSACK_MULTIDIMENSION_BRANCH_AND_BOUND_SOLVER, 'MKP_Solve')
-        KNAPSACK_MULTIDIMENSION_CBC_MIP_SOLVER, 'MKP_Solve')
+        KNAPSACK_MULTIDIMENSION_CBC_MIP_SOLVER,
+        'MKP_Solve')
     solver.Init(profits, weights, capacities)
     computed_profit = solver.Solve()
     if verbose:
