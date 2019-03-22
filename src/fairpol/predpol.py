@@ -8,8 +8,54 @@ from tqdm.auto import tqdm
 
 
 class PredPol:
+    """A class for training PredPol on a dataset and making predictions.
 
+    Attributes:
+        train: a pointer to the pandas DataFrame indicating the training set
+
+        T: the maximum time value encountered across all data (test and train)
+
+        height: the maximum y-value in `train`
+
+        width: the maximum x-value in `train`
+
+        grid_size: the grid size specified in the constructor
+
+        grid_cells: a pandas DataFrame where each row is a grid cell. contains
+        `x` and `y` columns indicating the center point of the grid cell.
+
+        interpolator: a scipy.interpolate.RegularGridInterpolator object, used
+        to match coordinates to a grid cell. Call by using
+        `self.interpolator(vals)`, where `vals` is a M x 2 array-like, where each
+        row indicates a different coordinate. Returns a M x 2 array, where each
+        row are the coordinates the center of the matched grid cell.
+
+        eta: numeric, internal PredPol parameter for aftershock spatial decay
+        omega: numeric, internal PredPol parameter for aftershock temporal decay
+        sigma: numeric, internal PredPol parameter for background spatial decay
+    """
     def __init__(self, train, T=10.0, grid_size=0.1):
+        """Constructor for PredPol object.
+
+        Args:
+            train: a pandas DataFrame where each row is an observed crime, used
+            to learn the model parameters. Must contain at least the following
+            columns:
+                t: numeric, indicating the time of the crime. All values must be
+                less than the `T` supplied as an argument to this constructor.
+                x: numeric, indicating the horizontal position of the crime.
+                y: numeric, indicating the vertical position of the crime.
+            For numerical safety (avoiding overflows), it's recommended that t,
+            x, and y are all normalized to have relatively small values.
+
+            T: float, indicating the maximum `t` value in the _combined_ train
+            and test set of data.
+
+            grid_size: float, indicating the level of discretization/total
+            number of grid cells in the PredPol model. Smaller grid sizes have
+            more grid cells.
+        Returns: an initialized PredPol object before fitting parameter values.
+        """
         self.train = train
         self.T = T
         self.height = train.y.max()
@@ -39,24 +85,28 @@ class PredPol:
             bounds_error=False, fill_value=None
         )
 
+        self.eta = None
         self.omega = None
         self.sigma = None
-        self.eta = None
 
-    def fit(self, steps=200, eps=1e-5):
-        """Learn the parameters omega, sigma, eta from training data `train`
+    def fit(self, steps=200, eps=1e-5, num_restarts=3):
+        """Learn the parameters omega, sigma, eta from training data `train` via
+        EM.
+
+        Args:
+            steps: integer, the maximum number of EM steps to take before
+            terminating
+            eps: integer, the tolerance threshold for terminating early from the
+            optimization routine. Optimization stops when the change in each
+            parameter is no greater than the value specified here.
+            num_restarts: integers, the number of restarts to perform
+
+        Returns: a pointer to `self`, where the parameter attributes omega,
+        sigma, and eta have been learned.
         """
         train = self.train
         N = len(train)
         T = self.T
-
-        # Initialize parameters to random values
-        # Parameters for triggering kernel
-        omega = sp.absolute(stats.norm.rvs(scale=0.10))  # time decay
-        sigma = sp.absolute(sp.randn())  # spatial decay
-        # Parameter for background rate
-        eta = sp.absolute(sp.randn())
-        # print("Initial values:", omega, sigma, eta)
 
         # Allocate "p" matrices
         p_aftershock = sp.zeros((N, N))
@@ -81,43 +131,60 @@ class PredPol:
         trigger_check = time_check * origin_check
         t_diff = t_j - t_i
 
-        # Loop until convergence
-        for step in tqdm(range(steps)):
-            old_parameters = sp.stack([omega, sigma, eta])
+        best_params = None
+        best_likelihood = None
+        for _ in range(num_restarts):
+            # Initialize parameters to random values
+            # Parameters for triggering kernel
+            omega = sp.absolute(stats.norm.rvs(scale=0.10))  # time decay
+            sigma = sp.absolute(sp.randn())  # spatial decay
+            # Parameter for background rate
+            eta = sp.absolute(sp.randn())
+            # Loop until convergence
+            for step in tqdm(range(steps)):
+                old_parameters = sp.stack([omega, sigma, eta])
 
-            # E-step: Calculate p matrices according to equations (9) and (10)
-            # "[P and P^b] contain the probabilities that event i triggered
-            # homicide j through either the triggering kernel g or the
-            # background rate kernel"
+                # E-step: Calculate p matrices according to equations (9) and (10)
+                # "[P and P^b] contain the probabilities that event i triggered
+                # homicide j through either the triggering kernel g or the
+                # background rate kernel"
 
-            p_aftershock = trigger_check * omega * sp.exp(-omega * t_diff) \
-                * stats.norm.pdf(distance, scale=sigma)
-            p_background = origin_check * stats.norm.pdf(distance, scale=eta)
+                p_aftershock = trigger_check * omega * sp.exp(-omega * t_diff) \
+                    * stats.norm.pdf(distance, scale=sigma)
+                p_background = origin_check * stats.norm.pdf(distance, scale=eta)
 
-            # Normalize as necessary
-            Z = p_aftershock + p_background
-            nonzero_Z = Z > 0
-            p_aftershock[nonzero_Z] /= Z[nonzero_Z]
-            p_background[nonzero_Z] /= T * Z[nonzero_Z]
+                # Normalize as necessary
+                Z = p_aftershock + p_background  # also used for likelihood
+                nonzero_Z = Z > 0
+                p_aftershock[nonzero_Z] /= Z[nonzero_Z]
+                p_background[nonzero_Z] /= T * Z[nonzero_Z]
 
-            # M-step: Update parameters
+                # M-step: Update parameters
 
-            aftershock_sum = sp.sum(p_aftershock)
-            time_gaps = T - t_i
-            omega_denom = sp.sum(p_aftershock * (t_j - t_i)) \
-                        + sp.sum(time_gaps * sp.exp(-omega * time_gaps))
-            omega = aftershock_sum / omega_denom
+                aftershock_sum = sp.sum(p_aftershock)
+                time_gaps = T - t_i
+                omega_denom = sp.sum(p_aftershock * (t_j - t_i)) \
+                            + sp.sum(time_gaps * sp.exp(-omega * time_gaps))
+                omega = aftershock_sum / omega_denom
 
-            sigma = sp.sum(p_aftershock * distance) / (2.0 * aftershock_sum)
-            eta = sp.sum(p_background * distance) / (2.0 * sp.sum(p_background))
+                sigma = sp.sum(p_aftershock * distance) / (2.0 * aftershock_sum)
+                eta = sp.sum(p_background * distance) / (2.0 * sp.sum(p_background))
 
-            diff = sp.absolute(old_parameters - sp.stack([omega, sigma, eta])).max()
-            if diff < eps:
-                print("Convergence met after {} iterations: {}".format(step, diff))
-                break
+                diff = sp.absolute(old_parameters - sp.stack([omega, sigma, eta])).max()
+                if diff < eps:
+                    print("Convergence met after {} iterations: {}".format(
+                        step, sp.sum(Z)
+                    ))
+                    break
+            # Check the likelihood given the discovered parameter values by
+            # summing over Z
+            likelihood = sp.sum(Z)
+            if best_likelihood is None or likelihood > best_likelihood:
+                best_params = omega, sigma, eta
+                best_likelihood = likelihood
 
         self.p_aftershock, self.p_background = p_aftershock, p_background
-        self.omega, self.sigma, self.eta = omega, sigma, eta
+        self.omega, self.sigma, self.eta = best_params
         return self
 
     def get_demographics(self, shape_json, shape_json_key,
@@ -126,10 +193,27 @@ class PredPol:
                          black_column,
                          white_column,
                          region_preprocess=lambda x: x):
-        """Given a JSON shape file, a key corresponding to the region identifier
-        in the JSON, a DataFrame of `demographic_data`, and a list of keys
-        corresponding to racial demographics, associate each grid cell with the
-        relevant demographic information.
+        """Associate each grid cell with demographic information.
+
+        Args:
+            shape_json: JSON file object containing shapefile information
+            shape_json_key: the name of the region identifier in `shape_json`
+            demographic_data: a pandas DataFrame containing demographic
+            information; must contain the columns specified by `[region_column,
+            black_column, white_column]`
+            region_column: a string identifying the column containing region
+            names
+            black_column: a string identifying the column identifying the
+            proportion black
+            white_column: a string identifying the column identifying the
+            proportion white
+            region_preprocess: optional lambda, in case the string identifiers
+            in the shape_json need to be transformed in order to match the
+            region identifiers in `demographic_data.region_column`
+
+        Returns: a pointer to `self`, where the `grid_cells` attribute now
+        contains columns for the corresponding region, percentage black, and
+        percentage white
         """
         train = self.train
         x_min = train.x.min()
@@ -184,8 +268,19 @@ class PredPol:
         return self
 
     def predict(self, data):
-        '''Given the observations in data, return the estimated conditional
-        intensities at each grid cell for the next day
+        '''Given the observations in `data`, return the estimated conditional
+        intensities at each grid cell for the next day.
+
+        Typically, `data` will be the values in `train` concatenated with
+        additional rows of observed crime (the internal PredPol parameters do
+        not need to be re-computed with every new observation).
+
+        Args:
+            data: a pandas DataFrame matching the specification of the `train`
+            argument to the PredPol() constructor
+        Returns:
+            an array with length `self.grid_cells.shape[0]`, where the ith value
+            corresponds to the predicted intensity for the ith grid cell
         '''
 
         N = len(data)
