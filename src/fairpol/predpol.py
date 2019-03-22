@@ -268,7 +268,7 @@ class PredPol:
         return self
 
     def predict(self, data):
-        '''Given the observations in `data`, return the estimated conditional
+        """Given the observations in `data`, return the estimated conditional
         intensities at each grid cell for the next day.
 
         Typically, `data` will be the values in `train` concatenated with
@@ -281,7 +281,7 @@ class PredPol:
         Returns:
             an array with length `self.grid_cells.shape[0]`, where the ith value
             corresponds to the predicted intensity for the ith grid cell
-        '''
+        """
 
         N = len(data)
         sigma = self.sigma

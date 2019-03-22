@@ -6,7 +6,13 @@ from tqdm import tqdm
 
 
 def download_file(url, target):
-    # Download file from original link
+    """Helper function to download file with progress bar.
+
+    Args:
+        url: string, indicating location of file to be downloaded
+        target: string, indicating final location and name of downloaded file
+    Returns: None
+    """
     if not os.path.isfile(target):
         # Download with progress bar code modified from:
         # https://stackoverflow.com/questions/37573483/progress-bar-while-download-file-over-http-with-requests/37573701

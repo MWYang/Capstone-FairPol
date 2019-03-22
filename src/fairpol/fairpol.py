@@ -5,17 +5,44 @@ import scipy as sp
 
 
 def compute_fp_knapsack(assess_obj, num_cells,
-                        total_cells_factor=5, max_gap=500, precision=4,
+                        total_cells_factor=5, max_gap=0.05, precision=4,
                         verbose=False):
-    '''Computes both a fairer selection of grid cells for each day tested in
+    """Computes both a fairer selection of grid cells for each day tested in
     `assess_obj` and the accuracy/fairness curves for those results.
-    '''
+
+    Args:
+        assess_obj: an AssessPol object
+        num_cells: an array indicating the number of grid cells to compute the
+            fairness modification on (calculating on every number in
+            range(len(grid_cells)) is prohibitively expensive)
+        total_cells_factor: an integer indicating the total number of cells to
+            consider at every iteration. Rather than considering all grid cells
+            at each step, we speed up computation by only comparing the top
+            (num_cell * total_cells_factor) grid cells at each iteration.
+        max_gap: an integer indicating the maximum tolerable fairness gap (the
+            parameter D in chapter 4 of the final report).
+        precision: an integer indicating the number of decimal points to
+            preserve when passing weights to the MKP solver (which expects
+            integer weights while the original fairness costs are in the unit
+            range)
+    Returns:
+        a tuple consisting of:
+            - a dictionary containing the information of which grid cells were
+              chosen for each day and each number of grid cells in `num_cells`
+              specifically: maps from datestrings to another dictionary, where
+              that dictionary maps from numbers N in `num_cells` to a list of
+              indexes
+            - array, average accuracy results for each number of grid cells considered
+            - array, average fairness results for each number of grid cells considered
+    """
     knapsack_items = {}
     knapsack_accuracy = sp.zeros(len(num_cells))
     knapsack_fairness = sp.zeros(len(num_cells))
 
     black = assess_obj.pred_obj.grid_cells.black.fillna(0)
     white = assess_obj.pred_obj.grid_cells.white.fillna(0)
+    # scale max_gap by the same factor as we scale the weights
+    max_gap *= 10 ** precision
 
     for i, (lambda_col, actual_col) in assess_obj._iterator():
         chosen_items = {}
@@ -77,6 +104,8 @@ def compute_fp_knapsack(assess_obj, num_cells,
 
 
 def compute_fp_sorting(assess_obj, alphas):
+    """Deprecated, do not use.
+    """
     accuracy = sp.zeros((len(assess_obj.results), len(alphas)))
     fairness = accuracy.copy()
     black = assess_obj.pred_obj.grid_cells.black.fillna(0)
