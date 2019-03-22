@@ -42,7 +42,12 @@ also take \~2 hours (at least on my machine).
     |   |-- predpol.py
 ```
 
+`chicago_analysis.ipynb` is the main program file and produces all of the results and graphs.
+
+`download_and_clean_chicago_data.py` and `download_and_clean_illinois_census_data.py` download the data files for replication. The first gets crime data from the Chicago police department while the second retrieves demographic information for each census tract in Chicago.
+
+The source code for most of the functions is in `fairpol`. With a little bit of polishing, including writing test cases, `fairpol` could be published as its own Python package. As much as possible, the code in this directory attempts to be modular and follow reasonable naming conventions, where the logic for making policing predictions (`predpol.py`), assessing the results of policing prediction (`assesspol.py`), and making predictions fairer (`fairpol.py`) are separated into different files.
+
 # Tasks
 - [x] Finish migrating earlier, horrible spaghetti code for assessing fairness, implementing the fairness modification
 - [ ] Add final thesis document
-- [ ] Add smaller working example with a pre-cleaned dataset
