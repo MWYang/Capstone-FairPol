@@ -86,7 +86,7 @@ class AssessPol():
         """
         return self.results[self.actual_columns]
 
-    def _iterator(self):
+    def _iterator(self, **kwargs):
         """Helper function for returning an iterator through each day's predicted
         intensities and actual crime counts, with a progress bar
 
@@ -94,7 +94,7 @@ class AssessPol():
             (index, name of predictions column, name of actual results column)
         """
         return tqdm(enumerate(zip(self.lambda_columns, self.actual_columns)),
-            total=len(self.lambda_columns), leave=self.tqdm_leave)
+            total=len(self.lambda_columns), leave=self.tqdm_leave, **kwargs)
 
     def compute_accuracy(self):
         """Computes accuracy across the range in `self.date_range`.
