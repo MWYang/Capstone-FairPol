@@ -44,10 +44,9 @@ class AssessPol():
         and `self.actual_columns`.
 
         Args:
-            data: a pandas DataFrame where each row is an observed crime, used
-            to learn the model parameters. Typically will contain the rows in
-            `self.pred_obj.train` and additional ones.Must contain at least the
-            following columns:
+            data: a pandas DataFrame where each row is an observed crime.
+            Typically will contain the rows in `self.pred_obj.train` and
+            additional ones. Must contain at least the following columns:
                 t: numeric, indicating the time of the crime. All values must be
                 less than the `T` supplied as an argument to this constructor.
                 x: numeric, indicating the horizontal position of the crime.
@@ -177,6 +176,13 @@ class AssessPol():
     def assess_calibration(self):
         """Assess if PredPol is calibrated by conditioning on predicted intensity
         and checking the correlation between number of crimes and demographics.
+
+        Returns: a 2D array where the first dimension is the number of days in
+        the test set and the second dimension is the number of bins for the
+        range of predicted intensities, as computed by `sp.histogram_bin_edges`.
+        The entry in the ith row and jth column is the Pearson correlation
+        coefficient between race and actual number of crimes in the jth bin of
+        predicted intensity for the ith day.
         """
         black = self.pred_obj.grid_cells.black
         not_nan = sp.logical_not(sp.isnan(black.values))
@@ -192,14 +198,26 @@ class AssessPol():
                     actual = self.results.loc[idx_selected, actual_col]
                     demographics = black.loc[idx_selected]
                     correlations[i, j] = sp.stats.pearsonr(actual, demographics)[0]
-
-        correlations /= (i + 1)  # take the average over the results
         return correlations
 
 
 def count_seen(pred_obj, test_data):
     """Given the crime data in `test_data`, compute how much crime was actually
     observed in each grid cell in `pred_obj`.
+
+    Args:
+        pred_obj: a PredPol object
+        test_data: a pandas DataFrame where each row is an observed crime.
+            Must contain at least the following columns:
+                t: numeric, indicating the time of the crime. All values must be
+                less than the `T` supplied as an argument to this constructor.
+                x: numeric, indicating the horizontal position of the crime.
+                y: numeric, indicating the vertical position of the crime.
+            For numerical safety (avoiding overflows), it's recommended that t,
+            x, and y are all normalized to have relatively small values.
+    Returns: a copy of the `pred_obj.grid_cells` dataframe with a new column
+    `num_observed` that indicates how many crimes were observed in each grid
+    cell in the `test_data`.
     """
     result = pred_obj.grid_cells[['x', 'y']].copy()
     counts = pred_obj.interpolator(test_data[['x', 'y']]).astype(int)
