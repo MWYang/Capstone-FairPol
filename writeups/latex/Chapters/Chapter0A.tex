@@ -1,0 +1,58 @@
+%********************************************************************
+% Appendix
+%*******************************************************
+% If problems with the headers: get headings in appendix etc. right
+%\markboth{\spacedlowsmallcaps{Appendix}}{\spacedlowsmallcaps{Appendix}}
+\chapter{HC and LO Usage} \label{app:hc_lo_usage}
+
+% \emph{Note to non-Minervans reading this document: }
+
+\section{HCs}
+
+\newcommand\hashtag{\item[\textbf{\#}]}
+\begin{itemize}
+\hashtag optimization (FA): Because the parameter space for \pp is non-convex (see \autoref{ch:predpol_primer} for a discussion of each parameter), any given run of the EM algorithm is likely to return a local optimum. Thus, I added multiple restarts with random initial values and chose the set of parameters that produced the highest likelihood of generating the data.
+
+\hashtag simulation (FA): This thesis contains a combination of theory and simulation, with an emphasis on the latter. The post-processing modification task introduced in \autoref{ch:fairpol} may theoretically correspond to satisfying a notion of fairness, but that must be tested on actual data and prediction results. Technically speaking, one can only guarantee fairness at prediction time, in terms of the predicted intensity values. Simulation is required to verify these results in practice.
+
+
+% \hashtag dataviz (EA): In displaying the curves for fairness (\autoref{fig:fairness}), I had to carefully consider what the fairness measure indicates and how it would be represented on the y-axis. The fairness notion I considered was particularly tricky because...
+\hashtag correlation (FA): In several places throughout this text (\autoref{sec:fair_unaware} and \autoref{sec:discussion}), Pearson's r is used as a cheap test for statistical independence, though the two terms are not synonymous. Pearson's r tests for a linear relationship among values and can be fooled by a variety of other types of relationships (such as a parabolic one). Statistical independence, on the other hand, is a more abstract notion that accounts for a variety of dependencies, including linear ones. I chose to use correlation as a indicator for dependence for three reasons. First, in the variables considered, non-linear dependencies would be quite odd and hard to explain (for instance, consider a parabolic relationship between proportion black/white in a grid cell and the number of crimes). Second, testing for conditional independence among continuous variables is a difficult problem. Moreover, the points involving Pearson's r are not the main results of this work (i.e. testing whether \pp satisfies sufficiency and explaining the relationship between predicted intensities and demographics). Further work would be necessary to verify or refute the early results from Pearson's r, but either outcome would not undermine the central theses of this work.
+
+\hashtag modeling (EA): The word "model" has been overloaded; the aims of predictive and descriptive modeling are quite different. My results suggest that \pp may function well as a descriptive model for criminologists and sociologists to examine, but real-world constraints hampers its application to predictive modeling. It is possible to make abstract ML models that perform better than \pp  (e.g. \citet{flaxman_scalable_2018}), but those models have even less descriptive value than \pp (which, all things considered, is not that sophisticated).
+
+% \hashtag decisionselection (EA): Perspective of police department, which decision procedure to use
+
+\hashtag studyreplication (EA): The importance of reproducibility shows up in two places in my thesis. First, I took deliberate steps to make my implementation and simulation code as reproducible as possible. I included download and cleaning scripts for all the data used in this study, and I commented each of my functions as well as my scripts. This document also contains a prose description of the implementation (\autoref{app:methodology}). Second, in \autoref{sec:caveats}, I talk explicitly about the relationship of my work to previous studies on \pp, and suggest ways in which my work might be flawed. Both of these are in the service of fostering open science and communication.
+
+\hashtag purpose (CS), ethicalframing (CS): In this thesis, I took the perspective of agents with potentially conflicting viewpoints: one who only cares about unconstrained accuracy and one who also cares about fairness and justice. I demonstrated that \pp, with regard to either set of motivations, fails to impress. This approach also squares the circle of intuitive tensions between accuracy and fairness in a predictive policing context.
+
+\hashtag multiplecauses (CS), sampling (FA): An unexplored fact of this work is the relationship between bias in crime data and my simulation results (I make mention of this issue in the conclusion). Computer scientists and practitioners have a tendency to treat data as the truth, when in reality, data collection practices are far from guaranteed to be a random sample from the population. In this paper, what has been used as and referred to as "crime data" is actually the result of a system of interactions, only one of which is the true occurrence of criminal activity. Other important aspects of the data generation process include the decision to report some crimes but not others and historical police policies that may distort the picture of crime. There are issues with the Chicago data itself, due to a legacy of biased (both in the statistical and normative sense) policing practices and data entry, that might change how we should interpret the results of a predictive policing algorithm. Understanding the data in this paper as the result of this complex generation mechanism leads to different interpretations of a "predictive policing" algorithm. For example, one such alternative interpretation is that the results in this paper are actually predictive of police activity, and not of crimes themselves. That interpretation of the data suggests further reason to be wary of predictive policing algorithms in general, since the data they are trained on may not actually be usable. It would also be interesting to consider if the data are systematically biased (in terms of sampling) in such a way that undermines a central result of this paper (that \pp does not necessarily predict more accurately than a simple baseline).
+
+% An earlier reviewer of my work brought to my attention the importance of paying attention to data generation mechanisms in any empirical study and particularly for a topic as sensitive as policing, and they have my thanks.
+
+% \hashtag multiplecauses (CS): Crime is a complex phenomenon, so ought we utilize a very assumption-free model like PredPol? The one type of cause used by PredPol (geographic vicinity) is a strong proxy for race.
+
+% \hashtag psychologicalexplanation (CS): The way police officers use a predictive policing tool may be complex? While it's an academic point to say that PP systems predict risk and not certainty, the difference in practice for the police officer might be quite different (fight-or-flight response).
+
+% \hashtag evidencebased (MC):
+
+\hashtag audience (MC): I intend for this paper to appeal to both technical and non-technical audiences. The latter group can just skip over any technical material or formulae, since most of the arguments and contributions of this paper can be explained in non-technical terms. As a point of differentiation from other computer science papers that I have read, I have explicitly included sections which talk about normative and ethical issues, such as the relationship between different notions of fairness (\autoref{ch:fairness_primer}).
+
+% \hashtag cognitivepersuasion, emotionalpersuasion (MC): My thesis conducts what is essentially a cost-benefits analysis for \pp, a strategy which may not be convincing to some audiences based on their political or ideological predispositions. A companion to this document, such as a popular science article explaining its results, could incorporate emotional persuasion by telling stories of how police officers use predictive policing software and how policed communities are affected as a result.
+
+\end{itemize}
+
+\section{LOs}
+
+\begin{itemize}
+\hashtag justice (AH164), technicalfairness (Custom): I demonstrate my understanding of both philosophical justice and technical notions of fairness in \autoref{ch:fairness_primer}. The kind of philosophical justice discussed here could be expanded in future work, since I restrict my attention mostly to procedural justice (is the allocation process fair?) rather than substantive justice (is the final standing of each person in society fair?). The lines between these two kinds of fairness do blur. One example of substantive fairness that differs from procedural fairness is to look at the number of people of different races that end up with a criminal record as a result of a predictive policing system. That goal is different from merely demographic parity (that there is no statistical relationship between the people predicted by an algorithm and the person's race). One could have demographic parity and still have unfairness (in the substantive sense) if the later decisions in the criminal justice process affected people of different races differently. Measuring and optimizing for that kind of fairness has not been discussed in this paper.
+
+\hashtag expectationmaximization (CS156): I had to implement and verify an expectation-maximization algorithm to train the internal parameters for \pp; see the above discussion on optimization.
+
+\hashtag probabilitytheory, graphicalmodels (CS146): I applied my knowledge of statistical models to understand and implement \pp. While graphical models did not explicitly factor into this paper, I did draw graphical models for myself as I worked through the papers introducing \pp.
+
+% \hashtag modelmetrics (CS156): 
+
+\hashtag novelapplication (CS110): I proposed how a fairness task could be transformed into a version of a different computational problem, the multi-dimensional knapsack problem (itself a variant of the knapsack problem).
+\end{itemize}

@@ -1,0 +1,153 @@
+% **************************************************************************************************************
+% A Classic Thesis Style
+% An Homage to The Elements of Typographic Style
+%
+% Copyright (C) 2018 André Miede and Ivo Pletikosić
+%
+% If you like the style then I would appreciate a postcard. My address
+% can be found in the file ClassicThesis.pdf. A collection of the
+% postcards I received so far is available online at
+% http://postcards.miede.de
+%
+% License:
+% This program is free software; you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation; either version 2 of the License, or
+% (at your option) any later version.
+%
+% This program is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+%
+% You should have received a copy of the GNU General Public License
+% along with this program; see the file COPYING.  If not, write to
+% the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+% Boston, MA 02111-1307, USA.
+%
+% PLEASE SEE ALSO THE AUTHORS' NOTE REGARDING THIS LICENSE
+% IN THE DOCUMENTATION (ClassicThesis.pdf --> Chapter 1 / Chapter01.tex)
+% **************************************************************************************************************
+\RequirePackage{silence} % :-\
+    \WarningFilter{scrreprt}{Usage of package `titlesec'}
+    %\WarningFilter{scrreprt}{Activating an ugly workaround}
+    \WarningFilter{titlesec}{Non standard sectioning command detected}
+%% Changing the documentclass declaration to fit on one line for texcount
+% \documentclass[
+%     twoside,
+%     openright,
+%     titlepage,
+%     numbers=noenddot,
+%     % 1headlines,
+%     headinclude,
+%     footinclude,
+%     cleardoublepage=empty,
+%     abstract=on,
+%     BCOR=5mm,
+%     paper=letter,
+%     fontsize=11pt
+% ]{scrreprt}
+\documentclass[oneside,titlepage,numbers=noenddot,headinclude,footinclude,abstract=on,BCOR=5mm,paper=letter,fontsize=11pt]{scrreprt}
+
+%********************************************************************
+% Note: Make all your adjustments in here
+%*******************************************************
+\input{classicthesis-config}
+% My apologies to The Elements of Typographic Style
+\usepackage[left=1.25in,right=1.25in,top=1.5in,bottom=1in]{geometry}
+\clearscrheadfoot
+\ohead[]{\headmark}
+\cfoot[\pagemark]{\pagemark}
+
+\newcommand{\pp}[0]{\textsc{PredPol}\xspace}
+
+%%% Provide better word count via texcount
+\newcommand{\detailtexcount}[1]{%
+  \immediate\write18{texcount -merge -sum -incbib -dir -relaxed #1.tex > #1.wcdetail }%
+  \verbatiminput{#1.wcdetail}%
+}
+\newcommand{\quickwordcount}[1]{%
+  \immediate\write18{texcount -1 -sum -merge -relaxed #1.tex > #1-words.sum }%
+  \input{#1-words.sum} words%
+}
+\newcommand{\quickcharcount}[1]{%
+  \immediate\write18{texcount -1 -sum -merge -char -relaxed #1.tex > #1-chars.sum }%
+  \input{#1-chars.sum} characters (not including spaces)%
+}
+%%%
+%********************************************************************
+% Bibliographies
+%*******************************************************
+\addbibresource{Bibliography.bib}
+%********************************************************************
+% Hyphenation
+%*******************************************************
+%\hyphenation{put special hyphenation here}
+
+% ********************************************************************
+% GO!GO!GO! MOVE IT!
+%*******************************************************
+\begin{document}
+\frenchspacing
+\raggedbottom
+\selectlanguage{american} % american ngerman
+%\renewcommand*{\bibname}{new name}
+%\setbibpreamble{}
+\pagenumbering{roman}
+\pagestyle{plain}
+%********************************************************************
+% Frontmatter
+%*******************************************************
+% \include{FrontBackmatter/DirtyTitlepage}
+\include{FrontBackmatter/Titlepage}
+% \include{FrontBackmatter/Titleback}
+% \cleardoublepage\include{FrontBackmatter/Dedication}
+%\cleardoublepage\include{FrontBackmatter/Foreword}
+\cleardoublepage\include{FrontBackmatter/Abstract}
+% \cleardoublepage\include{FrontBackmatter/Publications}
+\cleardoublepage\include{FrontBackmatter/Acknowledgments}
+\cleardoublepage\include{FrontBackmatter/Contents}
+%********************************************************************
+% Mainmatter
+%*******************************************************
+\cleardoublepage
+\pagestyle{scrheadings}
+\pagenumbering{arabic}
+%\setcounter{page}{90}
+% use \cleardoublepage here to avoid problems with pdfbookmark
+\cleardoublepage
+% \part{Some Kind of Manual}\label{pt:manual}
+\include{Chapters/Chapter01}
+\include{Chapters/Chapter02}
+\include{Chapters/Chapter03}
+\include{Chapters/Chapter04}
+\include{Chapters/Chapter05}
+\include{Chapters/Chapter06}
+\cleardoublepage
+% \ctparttext{You can put some informational part preamble text here.}
+% \part{The Showcase}\label{pt:showcase}
+%\addtocontents{toc}{\protect\clearpage} % <--- just debug stuff, ignore
+%\include{multiToC} % <--- just debug stuff, ignore for your documents
+% ********************************************************************
+% Backmatter
+%*******************************************************
+\appendix
+%\renewcommand{\thechapter}{\alph{chapter}}
+\cleardoublepage
+\part*{Appendix}
+\include{Chapters/Chapter0A}
+\include{Chapters/Chapter0B}
+\include{Chapters/Chapter0C}
+%********************************************************************
+% Other Stuff in the Back
+%*******************************************************
+%%TC:ignore
+\cleardoublepage\include{FrontBackmatter/Bibliography}
+%%TC:endignore
+% \cleardoublepage\include{FrontBackmatter/Declaration}
+% \cleardoublepage\include{FrontBackmatter/Colophon}
+% ********************************************************************
+% Game Over: Restore, Restart, or Quit?
+%*******************************************************
+\end{document}
+% ********************************************************************

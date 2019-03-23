@@ -1,0 +1,18 @@
+%*******************************************************
+% Abstract
+%*******************************************************
+%\renewcommand{\abstractname}{Abstract}
+\pdfbookmark[1]{Abstract}{Abstract}
+% \addcontentsline{toc}{chapter}{\tocEntry{Abstract}}
+\begingroup
+\let\clearpage\relax
+\let\cleardoublepage\relax
+\let\cleardoublepage\relax
+
+\chapter*{Abstract}
+A well-known predictive policing algorithm does not necessarily do better, either on accuracy or fairness with respect to race, than a simple algorithm (a running count of which locations have historically had the most crime). We implement a popular predictive policing algorithm, \pp, and assess \pp for both accuracy and fairness. In the context of this paper, we define fairness using \emph{equalized odds} \citep{hardt_equality_2016}: It should be the case that a black criminal and a white criminal are equally likely to be caught by the recommendations from a predictive policing algorithm. We find that \pp, when used to predict the top 5\% of probable crime locations, does not achieve significantly better accuracy than the simple heuristic of visiting the areas with the most historical crimes. We discuss the normative implications of our research for \pp. We also propose a post-processing knapsack task with constraints that can make \pp and other predictive policing algorithms fairer. The technique improves the fairness of \pp without compromising on accuracy on the data tested.
+% The initial results from this method show that there are likely to be inherent trade-offs between accuracy and the fairness, as defined previously, of any predictive policing algorithm.
+
+\endgroup
+
+\vfill

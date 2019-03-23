@@ -1,0 +1,109 @@
+%************************************************
+\chapter{\pp with Equalized Odds}\label{ch:fairpol}
+%************************************************
+
+Having described in the previous chapter various notions of fairness and settled upon equalized odds, this chapter now focuses on the computational task of ensuring equalized odds in \pp (and theoretically, any predictive policing algorithm). The main theoretical contribution of this chapter is a post-processing task for approaching equalized odds. The task "post-processes" the predicted values of \pp and does not modify the internal model of \pp. Any predictive policing algorithm which also meets the description of the predictive policing task in \autoref{ch:predpol_primer} can also be modified using the following work.
+
+The intuition for the post-processing modification is that if equalized odds is true, then the following quantity should be close to zero:
+\begin{align}
+    \left|\text{\% black crime caught} - \text{\% white crime caught}\right| \label{eq:unfairness_measure}
+\end{align}
+This measure captures the belief that grid cells with equal amounts of criminal activity ought to have similar predicted intensities, regardless of their demographic make-up. This measure also solves the problem that while observational notions of fairness are frequently deployed on binary variables, the variables in our setting (the predicted intensity per grid cell, the demographic make-up per grid cell, and the number of crimes in each grid cell) are all continuous.
+
+\autoref{eq:unfairness_measure} is properly a measure of \emph{un}-fairness, since smaller values of it correspond to fairer predictions and vice versa. One can turn \autoref{eq:unfairness_measure} into a fairness measure by subtracting it from $1.0$.
+
+The vague terms "black crime" and "white crime" accommodate both different interpretations of what fairness in policing requires and the possibilities afforded by different datasets. For example, the Chicago crime data used for the present research omits race as a feature of each observation. Instead, we operationalize "black crime" and "white crime" as "crime occurring in locations with larger black or white populations" respectively.\footnote{To do so, we combined the Chicago crime data with other demographic data; see \autoref{app:methodology} for details.} In other scenarios, researchers may choose to prioritize the race of either the perpetrator of a crime or the race of the victims; the approach used in this research attempts to consider both.
+
+Given the goal of catching equal amounts of crime across protected groups, one ought to try and equalize the predicted intensity of crime across protected groups in the locations visited. To formalize this notion for the $i$th grid cell, let $f_i$ be the intensity, as predicted by PredPol, $b_i$ the percentage of black individuals, and $w_i$ the percentage of white individuals. The data are processed so that $\forall i$, $b_i + w_i = 1.0$. First, compute:
+\begin{align}
+\hat{f}^{\text{(black)}}_i &= \frac{b_i f_i}{\sum_i b_i f_i}\\
+\hat{f}^{\text{(white)}}_i &= \frac{w_i f_i}{\sum_i w_i f_i}
+\end{align}
+The $\hat{f}$ values indicate \emph{racially-differentiated predictive
+value}.\footnote{If one had race information available for the perpetrator (or victim) of each crime, they could separately estimate intensities for each race $f^{\text{(black)}}, f^{\text{(white)}}$, and combine them in the following way: $
+\hat{f}^{\text{(black)}}_i = \frac{f^{\text{(black)}}_i}{\sum_i f^{\text{(black)}}_i}$ and $
+\hat{f}^{\text{(white)}}_i = \frac{f^{\text{(white)}}_i}{\sum_i f^{\text{(white)}}_i}
+$} If one is concerned about crime that disproportionately affects black communities, they should visit grid cells as ranked by the value of $\hat{f}^{\text{(black)}}_i$, and vice versa for white communities. In a world where communities are fully integrated and there are no global disparities in demographics (so the demographics of each grid cell reflect the demographics over all locations), $\hat{f}^{\text{(black)}}_i = \hat{f}^{\text{(white)}}_i$ for all $i$. In this ideal setting, one could also achieve demographic parity.
+
+Now, we can calculate the \emph{predictive value gap} for each grid cell $i$ by taking $\Delta_i = |\hat{f}^{\text{(black)}}_i - \hat{f}^{\text{(white)}}_i|$.
+% The values in figures~\ref{fig:fair_overall} and \ref{fig:fair_detail} are computed in this way.
+Note that the values of $\hat{f}$ are in the unit interval $[0, 1]$.
+Thus, the difference $\hat{f}^{\text{(black)}}_i - \hat{f}^{\text{(white)}}_i$ will be in the range $[-1, 1]$, and $\Delta_i$ will be in the unit interval as well. When $\Delta_i = 0$ for a particular grid cell, it means that that grid cell captures an equal amount of crime affecting both races; in other words, that grid cell is "fair."
+
+With the definitions of $\hat{f}$ in hand, we can define the post-processing fairness task, which takes its inspiration from the knapsack problem in theoretical computer science. Intuitively, even if no grid cell is fair individually, different combinations or subsets of grid cells might be fair (as indicated by their summed differences $\hat{f}^{\text{(black)}}_i - \hat{f}^{\text{(white)}}_i$.\footnote{We must drop the absolute value around this expression in order to allow different gaps from different cells to cancel out.} This problem mirrors a knapsack task: we want to maximize the overall value of a subset of items from a larger collection while subject to certain constraints.
+
+More formally, given a list of $N$ items, each with an associated benefit $f_i$ and two different costs $\hat{f}^{\text{(black)}}_i$ and
+$\hat{f}^{\text{(white)}}_i$, find a subset of at most $k$ items such
+that: the total benefit is maximized, and the two total costs are approximately equivalent. If we let $x_i$ be a binary indicator for whether an item is included in the knapsack, and give dummy weights of $w_i = 1$ for all $i$, we can state the problem as follows:
+\begin{alignat}{2}
+&\!\max_{x}        &\;& \sum_i f_i x_i\\
+&\text{subject to} &  & \sum_i x_i = k\\
+&                  &  & \sum_i
+\hat{f}^{\text{(black)}}_i x_i = \sum \hat{f}^{\text{(white)}}_i
+x_i
+\intertext{The tricky condition is the third line, which we can transform into two constraints:}
+&\!\max_{x}        &\;& \sum_i f_i x_i\\
+&\text{subject to} &  & \sum_i x_i = k\\
+&                  &  & \sum_i \hat{f}^{\text{(black)}}_i x_i = D\\
+&                  &  & \sum_i \hat{f}^{\text{(white)}}_i x_i = D
+\end{alignat}
+The value $D$ is arbitrary---if the subset of grid cells selected polices the same percentage of black and white crime, then the subset is fair, by our standard. However, when implementing this problem in practice, we also relax all of the equalities to be less-thans. Then, $D$ takes on the role of the \emph{maximum tolerable gap} in fairness. Because the constraints become inequalities, the gap in fairness will be at most $D$.
+
+We also observe that without the fairness constraints (alternatively, setting $D = 1$), this knapsack problem is trivial and amounts to taking the $k$ cells with highest $f_i$ value.
+
+To provide further intuition for how this post-processing task might affect the predictions of an unconstrained procedure, we will consider two toy examples that illustrate the two possible ways in which post-processing task changes predictions. Each example considers a map of crime with four grid cells, and the resource-strapped police department can only visit two of the locations. Each map is represented by a two-by-two table, where the contents of each cell respectively indicate the predicted crime intensity $f$, the amount of black crime (as a percentage of all black crime) occurring in that cell $f^{\text{(black)}}$, and the same quantity for whites $f^{\text{(white)}}$. We further assume that we have a perfect predictor, so that $f = \hat{f}$.
+
+\begin{table}[h]
+\centering
+\resizebox{0.5\textwidth}{!}{%
+\begin{tabular}{|l|l|}
+\hline
+5 / 0.4 / 0.2 & 4 / 0.2 / 0.2 \\ \hline
+4 / 0.2 / 0.2 & 1 / 0.2 / 0.4 \\ \hline
+\end{tabular}%
+}
+\caption{Example 1: A four-cell world}
+\label{table:example1}
+\end{table}
+
+In example 1, the unconstrained algorithm would visit the top-left cell and either the cell to the immediate bottom or right to capture:
+\begin{itemize}
+    \item 9 units of crime
+    \item 60\% of black crime
+    \item 40\% of white crime
+\end{itemize}
+However, the post-processing fairness modification with a sufficiently low tolerance threshold ($D < 0.2$) would choose both the top-right and bottom-left cell instead and thus capture:
+\begin{itemize}
+    \item 8 units of crime
+    \item 40\% of black crime
+    \item 40\% of white crime
+\end{itemize}
+This example illustrates that the fair procedure will generally prefer cells which have smaller $\Delta_i$ values. Moreover, the accuracy of the fair procedure will degrade further as the "unfair" cells account for more of the overall crime (for example, let the 5 in the top-right cell be 50 or 500).
+
+The fair procedure would also prefer combinations of cell that have a collectively small $\Delta_i$ value, as the second example will illustrate:
+\begin{table}[ht]
+\centering
+\resizebox{0.5\textwidth}{!}{%
+\begin{tabular}{|l|l|}
+\hline
+5 / 0.4 / 0.2 & 4 / 0.2 / 0.2 \\ \hline
+1 / 0.2 / 0.2 & 3 / 0.2 / 0.4 \\ \hline
+\end{tabular}%
+}
+\caption{Example 2: Another four-cell world}
+\label{table:example2}
+\end{table}
+
+The unconstrained algorithm would choose the top row of cells and, as before, capture:
+\begin{itemize}
+    \item 9 units of crime
+    \item 60\% of black crime
+    \item 40\% of white crime
+\end{itemize}
+The post-processing fairness modification with a sufficiently low tolerance threshold ($D < 0.2$) would instead choose the top-left and bottom-right cell and capture:
+\begin{itemize}
+    \item 8 units of crime
+    \item 40\% of black crime
+    \item 40\% of white crime
+\end{itemize}
+This time though, the fair procedure achieves greater fairness by "balancing" the un-fairness of one cell with the un-fairness of another cell. In this situation, the accuracy of the fair procedure degrades based on the difference between the second-best cell (the top-right cell in this example) and the "balancing" cell.

@@ -1,0 +1,42 @@
+%*****************************************
+\chapter{A Primer on PredPol}\label{ch:predpol_primer}
+%*****************************************
+
+As a location-based system, \pp aims to predict the probability of criminal activity in each location on a map, and from those predictions, generate a ranked list of crime locations. The rankings then direct the activity of police patrols. The novelty of \pp lies in its "aftershock" model of crime that accounts for the fact that crime re-occurs in roughly the same geographic area.
+
+Introducing a bit of notation, let $(x_i, y_i)$ for $i < N$ be the location of the center of each grid on a map, where there are $N$ grid cells total. The goal of predictive policing is to create a function $f(x_i, y_i, t)$ that is proportional to the probability of crime in the $i$th cell at time $t$ (note that $\sum_i f(x_i, y_i, t)$ does not have to equal $1$). One can then sort the grid cells by $f$ to prioritize which grid cells ought to be visited first. Since each policing department has finite resources, in practice only the top few percentage of grid cells are visited (discussed further in \autoref{ch:results}).
+
+\pp makes use of only three pieces of information about historical crime: the date and time of the crime, the location of the crime, and the type of crime.\footnote{The results of this paper omit analysis based on the type of crime. For a full discussion of the ramifications of this decision, see \autoref{sec:caveats}.} Because \pp does not explicitly consider race or other protected attributes to make decisions, \pp might be considered "fair through unawareness," a frequently cited notion of algorithmic fairness that will be discussed more thoroughly in \autoref{ch:fairness_primer}.
+
+\pp posits that an instance of crime falls into one of two categories: either the crime was a "background" event caused by underlying, environmental factors not represented in \pp explicitly, or that the crime was an "aftershock" event that was partially triggered by a recent crime in a nearby location \citep{mohler_self-exciting_2011,mohler_marked_2014}. The terms "background" and "aftershock" derive from the model's origin in seismology.
+
+Sociological studies of crime lend credence to the presence of "aftershock" crimes because of three kinds of behaviors: repeat victimization, in which offenders return to the location of previously successful crimes; near-repeat victimization, where offenders tend to re-offend in locations close to the location of previously successful crimes; and local search, in which offenders rarely travel far from common locations like home or work \citep{mohler_self-exciting_2011}. All three of these behaviors are modeled by the aftershock component of \pp.
+
+\autoref{eq:predpol_main} describes how \pp computes $f$ for the $i$th location at time $t$:
+\newcommand{\diff}[0]{\ensuremath{_{\text{diff}}}}
+\begin{align}
+f(x_i, y_i, t) &= \sum_{j \mid t_j < t} \left(
+    \underbrace{\mu(x_j - x_i, y_j - y_i)}_{\text{background}} + 
+    \underbrace{g(x_j - x_i, y_j - y_i, t_j - t)}_{\text{aftershock}}
+\right) \label{eq:predpol_main} \\
+\intertext{In practice, \pp works like a kernel-based smoothing method over the dataset of historical crimes. Each crime $j$ observed before time $t$ contributes some amount of predicted intensity to the $i$th grid cell. The contribution of each crime to the predicted intensity is described by the $\mu$ and $g$ functions. The first accounts for the "background" rate of crime, while the second accounts for "aftershock" crimes.}
+\mu(\Delta x, \Delta y) &= \mathcal{N}_{pdf}\left(
+    % \begin{bmatrix} \Delta x \\ \Delta y \end{bmatrix};\;
+    % \begin{bmatrix} 0 \\ 0 \end{bmatrix},
+    % \begin{bmatrix} \eta & 0 \\ 0 & \eta \end{bmatrix}
+    \Delta x, \Delta y \mid \eta^2
+\right)\\
+g(\Delta x, \Delta y, \Delta t) &=
+\lambda_{pdf}(\Delta t \mid \omega)
+\times \mathcal{N}_{pdf}\left(
+    % \begin{bmatrix} \Delta x \\ \Delta y \end{bmatrix};\;
+    % \begin{bmatrix} 0 \\ 0 \end{bmatrix},
+    % \begin{bmatrix} \sigma & 0 \\ 0 & \sigma \end{bmatrix}
+    \Delta x, \Delta y \mid \sigma^2
+\right)
+\end{align}
+$\mathcal{N}_{pdf}$ is the probability distribution function for a symmetrical two-dimensional Gaussian distribution centered at the origin with variance $\eta^2$ or $\sigma^2$, respectively. $\lambda_{pdf}$ is the pdf for the exponential distribution with decay parameter $\omega$.
+
+Three parameters have to be estimated from the data with this procedure: $\eta$, $\omega$, and $\sigma$. The first governs the size of the Gaussian kernel used to estimate the background rate. Larger values of $\eta$ mean that each crime contributes more intensity to a wider range of cells. The second two govern the influence of aftershock events. $\omega$ controls how long an event temporarily raises the intensity of its neighboring grid cell, with larger values of $\omega$ corresponding to more temporary contributions. The role of $\sigma$ is similar to the role of $\eta$, and controls how close nearby events must be in order to contribute to the aftershock intensity.
+
+Following the procedure established in \citet{mohler_marked_2014}, we estimate these three parameters using an expectation-maximization (EM) procedure. See \autoref{app:methodology} for further details.

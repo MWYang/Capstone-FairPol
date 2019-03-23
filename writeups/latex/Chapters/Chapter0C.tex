@@ -1,0 +1,65 @@
+\chapter{Methodology} \label{app:methodology}
+
+This appendix describes the data collection, data cleaning, and simulation process of the present research. It is meant to accompany the code provided at: \url{https://github.com/MWYang/Capstone-FairPol}, and offers a high-level description of the procedure specified in the README there. 
+
+With a fast Internet connection on a MacBook Pro (Retina, 13-inch, Early 2015, 2.7 GHz processor, and 16 GB of RAM), the whole experimental process (downloading the RAW data, processing the data, running the simulation, and collecting results) takes about 4 hours.
+
+\section{Data Collection}
+
+There are three sources of data for the project:
+\begin{itemize}
+    \item Chicago crime data
+    \item 2015 American Community Survey demographics by 2010 Census tracts
+    \item 2010 Census Tracts GeoJSON shapefile
+\end{itemize}
+Download links for all of the data sources can be found in the corresponding scripts in the GitHub repository. The first dataset is used to train \pp and make forecasts, while the remaining two are used to associate each grid cell in the \pp model with demographic information. Downloading demographic information makes use of the Python library \texttt{censusdata}, while the other two are available via public URLs.
+
+\section{Data Processing}
+
+The Chicago data are filtered to only include homicides in the years 2012-2015, inclusive. Rows with missing data in the 'X Coordinate', 'Y Coordinate', 'Latitude', 'Longitude', or 'Date' columns are dropped as these are all features required for simulation.
+
+To prevent overflow errors in the \pp simulation, x- and y-coordinate values are rescaled. The rescaling makes use of longitude and latitude calculations to ensure that 0.01 rescaled units corresponds to 150m, so that the final grid cell size in \pp is 150m $\times$ 150m. Moreover, we also 0-1 normalize the dates in the data to also avoid overflow.
+
+\section{\pp Simulation}
+
+As described in \autoref{ch:predpol_primer}, \pp simulation proceeds by iteration over the set of historical training data. First, \pp learns its internal parameters ($\eta$, $\omega$, and $\sigma$) via an expectation-maximization (EM) procedure. The EM equations are reproduced from \citet{mohler_marked_2014} below. In the E-step, compute two matrices $\mathbf{p}$ and $\mathbf{p^b}$ that indicate the probability of the $i$th event causing the $j$th event. If there are $N$ crimes in the training data, then both these matrices will be $N \times N$ square matrices. The sum of all the values in $\mathbf{p} + \mathbf{p^b}$ also measures the likelihood of the data given the current parameters, which is used to assess the fitness of the parameters across random restarts.
+\begin{align}
+    p_{ij} &= \frac{
+        \omega \exp\left(-\omega(t_j - t_i)\right)
+        \frac{1}{2 \pi \omega^2} \exp\left(
+            -\frac{(x_j - x_i)^2 + (y_j - y_i)^2}{2\sigma^2}
+        \right)
+    }{f(x_j, y_j, t_j)}\\
+    p^b_{ij} &= \frac{
+        \frac{1}{2 \pi \eta^2} \exp\left(
+            -\frac{(x_j - x_i)^2 + (y_j - y_i)^2}{2\eta^2}
+        \right)
+    }{T f(x_j, y_j, t_j)}
+\end{align}
+$T$ is the length of the time window (the maximum $t$-value, if the minimum value is 0) in the training data. Given the values in the E-step, we update the values of the parameters in the M-step with the following equations:
+\begin{align}
+    \omega &= \frac{\sum_i \sum_j p_{ij}}{
+        \sum_i \sum_j p_{ij} (t_j - t_i) + 
+        \sum_i (T - t_i) \exp(-\omega(T - t_i))
+    }\\
+    \sigma^2 &= \frac{
+        \sum_i \sum_j p_{ij} \left(
+            (x_j - x_i)^2 + (y_j - y_i)^2
+        \right)
+    }{2 \sum_i \sum_j p_{ij}}\\
+    \eta^2 &= \frac{
+        \sum_i \sum_j p^b_{ij} \left(
+            (x_j - x_i)^2 + (y_j - y_i)^2
+        \right)
+    }{2 \sum_i \sum_j p^b_{ij}}
+\end{align}
+EM proceeds by taking alternate E-step and M-step updates until the parameter values converge.
+
+To make predictions, \pp takes as an input all historical crime data observed up until the day desired for prediction. Predicted intensities are calculated for each grid cell using \autoref{eq:predpol_main} in \autoref{ch:predpol_primer}. The grid cells can then be sorted by the predicted intensity to output a list of predictions. We do so for every day in 2015, using the data from years 2012-2014 and any previously seen days in 2015 to compute intensities. Because this process is fairly time-consuming, we store all of the predicted intensities for each day in 2015 to speed up our fairness modifications.
+
+\section{Fairness Modifications}
+Computing the post-processing modification task described in \autoref{ch:fairpol} is relatively straightforward. After computing the $\hat{f}$ values as described in that section, we pass those values as weights to a library for solving the multi-dimensional knapsack problem. To speed up the performance of the library, we restrict the number of items that the knapsack solver receives: if $K$ items are desired ultimately, we take only the top $5K$ items, as ranked by the original \pp intensity. We found experimentally that restricting items in this manner did not impact the ultimate accuracy of the knapsack solver, and instead resulted in a significant boost in runtime. Our function for computing the fairness modification takes in a parameter controlling this restriction, so researchers can experiment with this as well.
+
+% \section{Analysis}
+
+% Generating pseudo-ROC curves
