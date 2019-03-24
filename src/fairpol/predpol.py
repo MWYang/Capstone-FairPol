@@ -11,7 +11,7 @@ class PredPol:
     """A class for training PredPol on a dataset and making predictions.
 
     Attributes:
-        train: a pointer to the pandas DataFrame indicating the training set
+        train: a pandas DataFrame indicating the training set
 
         T: the maximum time value encountered across all data (test and train)
 

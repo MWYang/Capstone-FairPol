@@ -8,11 +8,11 @@ With a fast Internet connection on a MacBook Pro (Retina, 13-inch, Early 2015, 2
 
 There are three sources of data for the project:
 \begin{itemize}
-    \item Chicago crime data
-    \item 2015 American Community Survey demographics by 2010 Census tracts
-    \item 2010 Census Tracts GeoJSON shapefile
+    \item Chicago crime data: \url{https://data.cityofchicago.org/api/views/ijzp-q8t2/rows.csv?accessType=DOWNLOAD}
+    \item 2015 American Community Survey demographics by 2010 Census tracts: Accessed by the Python \texttt{CensusData} library (\url{https://pypi.org/project/CensusData/})
+    \item 2010 Census Tracts GeoJSON shapefile: \url{https://github.com/uscensusbureau/citysdk/raw/master/v2/GeoJSON/500k/2015/17/tract.json}
 \end{itemize}
-Download links for all of the data sources can be found in the corresponding scripts in the GitHub repository. The first dataset is used to train \pp and make forecasts, while the remaining two are used to associate each grid cell in the \pp model with demographic information. Downloading demographic information makes use of the Python library \texttt{censusdata}, while the other two are available via public URLs.
+The first dataset is used to train \pp and make forecasts, while the remaining two are used to associate each grid cell in the \pp model with demographic information. Downloading demographic information makes use of the Python library \texttt{censusdata}, while the other two are available via public URLs.
 
 \section{Data Processing}
 

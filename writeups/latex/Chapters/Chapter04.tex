@@ -2,7 +2,7 @@
 \chapter{\pp with Equalized Odds}\label{ch:fairpol}
 %************************************************
 
-Having described in the previous chapter various notions of fairness and settled upon equalized odds, this chapter now focuses on the computational task of ensuring equalized odds in \pp (and theoretically, any predictive policing algorithm). The main theoretical contribution of this chapter is a post-processing task for approaching equalized odds. The task "post-processes" the predicted values of \pp and does not modify the internal model of \pp. Any predictive policing algorithm which also meets the description of the predictive policing task in \autoref{ch:predpol_primer} can also be modified using the following work.
+In the previous chapter, we described various notions of fairness and settled upon equalized odds as the object of measurement for this study. In this chapter, we now focus on the computational task of ensuring equalized odds in \pp (and theoretically, any predictive policing algorithm). The main theoretical contribution of this chapter is a post-processing task for approaching equalized odds. The task "post-processes" the predicted values of \pp and does not modify the internal model of \pp. Any predictive policing algorithm which also meets the description of the predictive policing task in \autoref{ch:predpol_primer} can also be modified using the following work.
 
 The intuition for the post-processing modification is that if equalized odds is true, then the following quantity should be close to zero:
 \begin{align}
@@ -16,8 +16,8 @@ The vague terms "black crime" and "white crime" accommodate both different inter
 
 Given the goal of catching equal amounts of crime across protected groups, one ought to try and equalize the predicted intensity of crime across protected groups in the locations visited. To formalize this notion for the $i$th grid cell, let $f_i$ be the intensity, as predicted by PredPol, $b_i$ the percentage of black individuals, and $w_i$ the percentage of white individuals. The data are processed so that $\forall i$, $b_i + w_i = 1.0$. First, compute:
 \begin{align}
-\hat{f}^{\text{(black)}}_i &= \frac{b_i f_i}{\sum_i b_i f_i}\\
-\hat{f}^{\text{(white)}}_i &= \frac{w_i f_i}{\sum_i w_i f_i}
+\hat{f}^{\text{(black)}}_i &= \frac{b_i f_i}{\sum_i b_i f_i} \label{eq:f_hat1}\\
+\hat{f}^{\text{(white)}}_i &= \frac{w_i f_i}{\sum_i w_i f_i} \label{eq:f_hat2}
 \end{align}
 The $\hat{f}$ values indicate \emph{racially-differentiated predictive
 value}.\footnote{If one had race information available for the perpetrator (or victim) of each crime, they could separately estimate intensities for each race $f^{\text{(black)}}, f^{\text{(white)}}$, and combine them in the following way: $
@@ -106,4 +106,4 @@ The post-processing fairness modification with a sufficiently low tolerance thre
     \item 40\% of black crime
     \item 40\% of white crime
 \end{itemize}
-This time though, the fair procedure achieves greater fairness by "balancing" the un-fairness of one cell with the un-fairness of another cell. In this situation, the accuracy of the fair procedure degrades based on the difference between the second-best cell (the top-right cell in this example) and the "balancing" cell.
+In this situation, the fair procedure achieves greater fairness by "balancing" the unfairness of one cell with the unfairness of another cell. In this situation, the accuracy of the fair procedure degrades based on the difference between the second-best cell (the top-right cell in this example) and the "balancing" cell.
