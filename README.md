@@ -50,4 +50,4 @@ The source code for most of the functions is in `fairpol`. With a little bit of 
 
 # Tasks
 - [x] Finish migrating earlier, horrible spaghetti code for assessing fairness, implementing the fairness modification
-- [ ] Add final thesis document
+- [x] Add final thesis document
