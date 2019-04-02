@@ -3,7 +3,7 @@
 This repository contains the source code, Jupyter Notebooks, and LaTeX files
 for producing my Capstone thesis (submitted in March 2019).
 
-You can peruse the final documents in the `writeup` folder (incomplete), and
+You can read my [final thesis](writeups/ThesisFinal.pdf) and
 examine the source code in `src`. [This notebook](src/chicago_analysis.ipynb)
 contains the main code for running the models and performing the analysis as
 well as copies of the graphs.
